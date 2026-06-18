@@ -2,36 +2,70 @@ import sqlite3 from "sqlite3";
 
 // connect to the database here
 // data.db is the name of the database file
-const db = new sqlite3.Database("./data.db")
+const db = new sqlite3.Database("./data.db");
 
 export default function registerInvoice(fastify, opts, done) {
   fastify.all("/", (request, reply) => {
     const id = request.query.id;
-    console.log(id)
 
-    // code goes here
-    db.get(
-      "SELECT * FROM invoice WHERE InvoiceId = ?",
+    db.all(
+      `SELECT 
+        InvoiceId as id,
+        InvoiceDate as date, 
+        BillingAddress as address, 
+        BillingCity as city, 
+        BillingState as state, 
+        BillingCountry as country, 
+        BillingPostalCode AS postalCode, 
+        Total as total 
+      FROM 
+        Invoice
+      WHERE 
+        InvoiceId = ?`,
       [id],
       (err, invoice) => {
         if (err) {
-          console.error(err);
+          reply.code(500);
+          reply.send({ error: err, errorLocation: "Invoice" });
           return;
         }
-        console.log(invoice)
+
+        if (invoiceRows.length === 0) {
+          reply.code(404);
+          reply.send({ error: "Not found" });
+          return;
+        }
+
+        console.log(invoice);
         db.all(
-          "SELECT * FROM invoiceline WHERE InvoiceId = ?",
+          `SELECT 
+            i.UnitPrice AS unitPrice, 
+            i.Quantity AS quantity, 
+            t.Name AS trackName, 
+            a.Title AS albumTitle,
+            ar.Name AS artistName
+          FROM 
+            InvoiceLine i
+          JOIN
+            Track t ON t.TrackId = i.TrackId
+          JOIN
+            Album a ON a.AlbumId = t.AlbumId
+          JOIN
+            Artist ar ON ar.ArtistId = a.ArtistId
+          WHERE 
+            InvoiceId = ?`,
           [id],
           (err, lines) => {
             if (err) {
-              console.error(err);
+              reply.code(500);
+              reply.send({ error: err, errorLocation: "Track" });
               return;
             }
             console.log(lines);
             reply.send({ invoice, lines });
-          }
+          },
         );
-      }
+      },
     );
   });
 
