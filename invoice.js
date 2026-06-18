@@ -30,7 +30,7 @@ export default function registerInvoice(fastify, opts, done) {
           return;
         }
 
-        if (invoiceRows.length === 0) {
+        if (invoice.length === 0) {
           reply.code(404);
           reply.send({ error: "Not found" });
           return;
